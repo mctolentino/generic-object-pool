@@ -4,7 +4,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ObjectPool<T> {
+public abstract class ObjectPool<T> {
 
 	private Queue<T> pool;
 	private AtomicInteger inUseCounter = new AtomicInteger(0);
@@ -13,15 +13,13 @@ public class ObjectPool<T> {
 	private final int threshold;
 	private final int growth;
 	private final int ceiling;
-	private final Class<T> type;
 
-	private ObjectPool(PoolBuilder<T> builder) {
-		pool = builder.pool;
-		initial = builder.initial;
-		threshold = builder.threshold;
-		growth = builder.growth;
-		ceiling = builder.ceiling;
-		type = builder.type;
+	public ObjectPool(int initial, int threshold, int growth, int ceiling) {
+		pool = new ConcurrentLinkedQueue<T>();
+		this.initial = initial;
+		this.threshold = threshold;
+		this.growth = growth;
+		this.ceiling = ceiling;
 
 		initializePoolObjects(initial);
 	}
@@ -32,56 +30,8 @@ public class ObjectPool<T> {
 		}
 	}
 
-	public static class PoolBuilder<T> {
-
-		private ConcurrentLinkedQueue<T> pool;
-		private int initial = 5;
-		private int threshold = 2;
-		private int growth = 5;
-		private int ceiling = 10;
-		private Class<T> type;
-
-		public PoolBuilder(Class<T> type) {
-			this.type = type;
-			pool = new ConcurrentLinkedQueue<T>();
-		}
-
-		public PoolBuilder<T> initial(int value) {
-			initial = value;
-			return this;
-		}
-
-		public PoolBuilder<T> threshold(int value) {
-			threshold = value;
-			return this;
-		}
-
-		public PoolBuilder<T> growth(int value) {
-			growth = value;
-			return this;
-		}
-
-		public PoolBuilder<T> ceiling(int value) {
-			ceiling = value;
-			return this;
-		}
-
-		public ObjectPool<T> build() {
-			return new ObjectPool<T>(this);
-		}
-
-	}
-
-	private T createGenericObject() {
-		T object = null;
-		try {
-			object = type.newInstance();
-		} catch (InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
-		}
-		return object;
-	}
-
+	protected abstract T createGenericObject(); 
+	
 	// side effects: growPoolIfThresholdReached()
 	public T acquireObject() {
 		T genericObject = null;

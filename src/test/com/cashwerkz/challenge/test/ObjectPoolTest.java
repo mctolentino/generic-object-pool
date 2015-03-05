@@ -21,12 +21,12 @@ public class ObjectPoolTest {
 	
 	@Before
 	public void setUp(){
-		pool = new ObjectPool.PoolBuilder<SamplePoolObject>(SamplePoolObject.class)
-									.initial(6)
-									.threshold(4)
-									.growth(3)
-									.ceiling(10)
-									.build();
+		//int initial, int threshold, int growth, int ceiling
+		pool = new ObjectPool<SamplePoolObject>(6, 4, 3, 10){
+			protected SamplePoolObject createGenericObject(){
+				return new SamplePoolObject();
+			}
+		};
 	}
 
 	@Test
@@ -50,16 +50,17 @@ public class ObjectPoolTest {
 		SamplePoolObject poolObject = (SamplePoolObject)pool.acquireObject();
 		assertEquals(pool.getInitial()-1, pool.getPoolSize());
 		assertFalse(pool.contains(poolObject));
+		
 		pool.returnObject(poolObject);
 		assertTrue(pool.contains(poolObject));
 		assertEquals(pool.getInitial(), pool.getPoolSize());
-		
 	}
 	
 	@Test
 	public void testIncreasePoolSizeByGrowthRateIfThresholdIsReached(){
 		int initialPoolSizeBeforeGrowth = pool.getPoolSize();
 		assertEquals(pool.getThreshold()+2, initialPoolSizeBeforeGrowth);
+		
 		// Triggers threshold value
 		pool.acquireObject();
 		pool.acquireObject(); // expect pool size (4) + growth (3) = 7, inUseCounter = 2
