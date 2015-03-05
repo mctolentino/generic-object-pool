@@ -111,7 +111,7 @@ public class ObjectPoolTest {
 		poolObject = (SamplePoolObject) pool.acquireObject();
 	}
 
-	@Test(timeout=300)
+	@Test
 	public void testUsePoolByDifferentThreads() throws InterruptedException {
 		
 		System.out.println("Number of Pooled Objects Before Execution: " + pool.getPoolSize());
