@@ -1,11 +1,12 @@
 package com.cashwerkz.challenge;
 
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ObjectPool<T> {
 
-	private ConcurrentLinkedQueue<T> pool;
+	private Queue<T> pool;
 	private AtomicInteger inUseCounter = new AtomicInteger(0);
 
 	private final int initial;
@@ -22,7 +23,11 @@ public class ObjectPool<T> {
 		ceiling = builder.ceiling;
 		type = builder.type;
 
-		for (int i = 0; i < initial; i++) {
+		initializePoolObjects(initial);
+	}
+
+	private void initializePoolObjects(int initialNumberOfObjects) {
+		for (int i = 0; i < initialNumberOfObjects; i++) {
 			pool.add(createGenericObject());
 		}
 	}
@@ -71,43 +76,50 @@ public class ObjectPool<T> {
 		T object = null;
 		try {
 			object = type.newInstance();
-			System.out.println(" Create Pooled Object: " + object);
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
 		}
 		return object;
 	}
 
+	// side effects: growPoolIfThresholdReached()
 	public T acquireObject() {
-		
-		if( pool.size()-1 + inUseCounter.get() >= ceiling ){
+		T genericObject = null;
+
+		if (!pool.isEmpty()) {
+			genericObject = pool.remove();
+			inUseCounter.incrementAndGet();
+
+			growPoolIfThresholdReached();
+		} else {
 			throw new IllegalStateException("Max Objects in Pool Reached. \n"
 					+ "PoolSize : " + pool.size() + " inUseCounter: "
 					+ inUseCounter.get() + " ceiling: " + ceiling);
 		}
-		
-		T genericObject = pool.remove();
-		inUseCounter.incrementAndGet();
-	
-		if (pool.size() == threshold
-				&& (pool.size() + inUseCounter.get() <= ceiling)) {
-			
-			for (int i = 0; i < growth && (pool.size() + inUseCounter.get() < ceiling); i++) {
-				pool.add(createGenericObject());
-				System.out.println("BPoolSize: " + pool.size() + " inUseCounter: " + inUseCounter.get() + " Ceiling: " + ceiling);
-			}
-		} 
 
 		return genericObject;
 	}
 
-	public void returnObject(T genericObject) {
-		//System.out.println("Returned: " + genericObject + " inUseCounter: " + inUseCounter.decrementAndGet() + " PooledSize: " + pool.size());
-		inUseCounter.decrementAndGet();
-		pool.add(genericObject);
+	private void growPoolIfThresholdReached() {
+		// Max created objects should not exceed ceiling
+		if (pool.size() == threshold && (currentNumberOfObjects() <= ceiling)) {
+
+			for (int i = 0; i < growth && (currentNumberOfObjects() < ceiling); i++) {
+				pool.add(createGenericObject());
+			}
+		}
 	}
-	
-	
+
+	private int currentNumberOfObjects() {
+		return pool.size() + inUseCounter.get();
+	}
+
+	public void returnObject(T genericObject) {
+		if (genericObject != null) {
+			inUseCounter.decrementAndGet();
+			pool.add(genericObject);
+		}
+	}
 
 	public int getInUseCounter() {
 		return inUseCounter.get();
@@ -115,10 +127,6 @@ public class ObjectPool<T> {
 
 	public boolean contains(T object) {
 		return pool.contains(object);
-	}
-
-	public ConcurrentLinkedQueue<?> getPool() {
-		return pool;
 	}
 
 	public int getPoolSize() {
