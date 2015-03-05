@@ -11,7 +11,7 @@ public class SamplePoolObject{
 	}
 	
 	public SamplePoolObject(){
-		this.objectName = UUID.randomUUID().toString();
+		this.objectName = UUID.randomUUID().toString().substring(0, 3);
 	}
 	
 	@Override

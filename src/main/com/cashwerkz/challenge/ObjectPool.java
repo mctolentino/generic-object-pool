@@ -33,14 +33,14 @@ public abstract class ObjectPool<T> {
 	protected abstract T createGenericObject(); 
 	
 	// side effects: growPoolIfThresholdReached()
-	public T acquireObject() {
+	public synchronized T acquireObject() {
 		T genericObject = null;
 
-		if (!pool.isEmpty()) {
+		if (!pool.isEmpty() && currentNumberOfObjects() <= ceiling) {
 			genericObject = pool.remove();
 			inUseCounter.incrementAndGet();
-
 			growPoolIfThresholdReached();
+			
 		} else {
 			throw new IllegalStateException("Max Objects in Pool Reached. \n"
 					+ "PoolSize : " + pool.size() + " inUseCounter: "
@@ -50,21 +50,20 @@ public abstract class ObjectPool<T> {
 		return genericObject;
 	}
 
-	private void growPoolIfThresholdReached() {
+	private synchronized void growPoolIfThresholdReached() {
 		// Max created objects should not exceed ceiling
-		if (pool.size() == threshold && (currentNumberOfObjects() <= ceiling)) {
-
+		if (pool.size() <= threshold) {		
 			for (int i = 0; i < growth && (currentNumberOfObjects() < ceiling); i++) {
-				pool.add(createGenericObject());
-			}
+				pool.add(createGenericObject());		
+			}		
 		}
 	}
 
-	private int currentNumberOfObjects() {
+	private synchronized int currentNumberOfObjects() {
 		return pool.size() + inUseCounter.get();
 	}
 
-	public void returnObject(T genericObject) {
+	public synchronized void returnObject(T genericObject) {
 		if (genericObject != null) {
 			inUseCounter.decrementAndGet();
 			pool.add(genericObject);
