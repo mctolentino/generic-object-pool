@@ -72,12 +72,12 @@ public class ObjectPoolTest {
 		assertEquals(7, pool.getPoolSize());
 		assertEquals(2, pool.getInUseCounter());
 		
-		// Should stop adding objects if inUse and objects inside Pool equals ceiling
+		// Should stop adding objects if number of objects equals ceiling value
 		// Trigger second threshold
 		pool.acquireObject();
 		pool.acquireObject();
 		pool.acquireObject();
-		// should only add til ceiling
+		// should only grow the pool upto ceiling value
 		
 		assertEquals(5, pool.getPoolSize());
 		assertEquals(5, pool.getInUseCounter());		
@@ -111,7 +111,7 @@ public class ObjectPoolTest {
 		poolObject = (SamplePoolObject) pool.acquireObject();
 	}
 
-	@Test
+	@Test(timeout=300)
 	public void testUsePoolByDifferentThreads() throws InterruptedException {
 		
 		System.out.println("Number of Pooled Objects Before Execution: " + pool.getPoolSize());
